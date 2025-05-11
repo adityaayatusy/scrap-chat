@@ -1,0 +1,42 @@
+package scrapchat
+
+import (
+	"github.com/adityaayatusy/scrap-chat/internal/fetchers"
+	plf "github.com/adityaayatusy/scrap-chat/pkg/platform"
+	"github.com/adityaayatusy/scrap-chat/types"
+	"log"
+)
+
+type ScrapChat struct {
+	platform string
+	scrapper plf.ChatFetcher
+}
+
+func New(platform string) *ScrapChat {
+	var scrapper plf.ChatFetcher
+
+	switch platform {
+	case "youtube":
+		scrapper = fetchers.NewYoutube()
+	default:
+		log.Fatalf("Platform not support")
+		return nil
+	}
+
+	return &ScrapChat{
+		platform: platform,
+		scrapper: scrapper,
+	}
+}
+
+func (s *ScrapChat) AddCookies(path string) error {
+	return s.scrapper.AddCookies(path)
+}
+
+func (s *ScrapChat) FetchLiveChat(streamID string) (<-chan *types.ChatMessage, error) {
+	return s.scrapper.FetchLiveChat(streamID)
+}
+
+func (s *ScrapChat) FetchChannelInfo(path string) (types.ChannelInfo, error) {
+	return s.scrapper.FetchChannelInfo(path)
+}
