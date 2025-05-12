@@ -41,46 +41,11 @@ type YTWebClientInfo struct {
 }
 
 type YTCgf struct {
-	INNERTUBE_API_KEY             string
-	LIVE_CHAT_BASE_TANGO_CONFIG   LiveChatBaseTangoConfig
-	INNERTUBE_CONTEXT             YTInnerTubeContext
-	INNERTUBE_CONTEXT_CLIENT_NAME string
-	INNERTUBE_CLIENT_VERSION      string
-	ID_TOKEN                      string
-}
-
-type YTSubMenuItems struct {
-	Title        string
-	Continuation struct {
-		ReloadContinuationData struct {
-			Continuation string
-		}
-	}
-}
-
-type YTInitialData struct {
-	Contents struct {
-		TwoColumnWatchNextResults struct {
-			ConversationBar struct {
-				LiveChatRenderer struct {
-					Header struct {
-						LiveChatHeaderRenderer struct {
-							ViewSelector struct {
-								SortFilterSubMenuRenderer struct {
-									SubMenuItems []YTSubMenuItems `json:"subMenuItems"`
-								}
-							}
-						}
-					}
-				}
-			}
-		}
-	}
-	CurrentVideoEndpoint struct {
-		WatchEndpoint struct {
-			VideoId string `json:"videoId"`
-		}
-	}
+	INNERTUBE_API_KEY        string
+	API_KEY                  string
+	INNERTUBE_CONTEXT        YTInnerTubeContext
+	INNERTUBE_CLIENT_VERSION string
+	ID_TOKEN                 string
 }
 
 type YTChatMessagesResponse struct {
@@ -132,15 +97,18 @@ type YTRuns struct {
 	} `json:"emoji,omitempty"`
 }
 
+type InvalidationContinuationData struct {
+	Continuation string `json:"continuation"`
+	TimeoutMs    int    `json:"timeoutMs"`
+}
+
+type TimedContinuationData struct {
+	Continuation string `json:"continuation"`
+	TimeoutMs    int    `json:"timeoutMs"`
+}
 type YTContinuationChat struct {
-	TimedContinuationData struct {
-		Continuation string `json:"continuation"`
-		TimeoutMs    int    `json:"timeoutMs"`
-	} `json:"timedContinuationData"`
-	InvalidationContinuationData struct {
-		Continuation string `json:"continuation"`
-		TimeoutMs    int    `json:"timeoutMs"`
-	} `json:"invalidationContinuationData"`
+	TimedContinuationData        *TimedContinuationData        `json:"timedContinuationData,omitempty"`
+	InvalidationContinuationData *InvalidationContinuationData `json:"invalidationContinuationData,omitempty"`
 }
 
 type YTChatMessage struct {

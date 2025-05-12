@@ -1,6 +1,7 @@
 package scrapchat
 
 import (
+	"context"
 	"github.com/adityaayatusy/scrap-chat/internal/fetchers"
 	plf "github.com/adityaayatusy/scrap-chat/pkg/platform"
 	"github.com/adityaayatusy/scrap-chat/types"
@@ -15,9 +16,11 @@ type ScrapChat struct {
 func New(platform string) *ScrapChat {
 	var scrapper plf.ChatFetcher
 
+	ctx := context.Background()
+
 	switch platform {
 	case "youtube":
-		scrapper = fetchers.NewYoutube()
+		scrapper = fetchers.NewYoutube(&ctx)
 	default:
 		log.Fatalf("Platform not support")
 		return nil
