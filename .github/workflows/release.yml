@@ -36,7 +36,7 @@ jobs:
           go build -ldflags "-X main.version=$VERSION" -o scrap-chat-$GOOS-$GOARCH$ext cmd/scrap-chat/main.go
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: scrap-chat-${{ matrix.goos }}-${{ matrix.goarch }}
           path: scrap-chat-${{ matrix.goos }}-${{ matrix.goarch }}*
