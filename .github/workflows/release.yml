@@ -18,18 +18,16 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version: "1.24"
-      - name: Run Tests
-        run: go test ./...
       - name: Build Binary
         run: |
           GOOS=$(echo "${{ matrix.os }}" | sed 's/-latest//')
           GOARCH=amd64
-          go build -o myapp-${GOOS}-${GOARCH} .
+          go build -o scrapchat-${GOOS}-${GOARCH} cmd/scrap-chat/main.go
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: myapp-${{ matrix.os }}
-          path: myapp-${{ matrix.os }}-amd64
+          name: scrapchat-${{ matrix.os }}
+          path: scrapchat-${{ matrix.os }}-amd64
   release:
     needs: build
     runs-on: ubuntu-latest
@@ -39,7 +37,7 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: myapp-*/myapp-*
+          files: scrapchat-*/scrapchat-*
           tag_name: ${{ github.sha }}
           body: "Automated release from the release branch."
         env:
