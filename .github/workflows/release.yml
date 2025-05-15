@@ -27,6 +27,7 @@ jobs:
           GOOS: ${{ matrix.goos }}
           GOARCH: ${{ matrix.goarch }}
           VERSION: ${{ github.ref_name }}
+          CGO_ENABLED: 0
         run: |
           echo "Building for $GOOS/$GOARCH version $VERSION"
           ext=""
@@ -35,7 +36,7 @@ jobs:
           fi
           go build -ldflags "-X main.version=$VERSION" -o scrap-chat-$GOOS-$GOARCH$ext cmd/scrap-chat/main.go
 
-      - name: Upload artifact
+      - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: scrap-chat-${{ matrix.goos }}-${{ matrix.goarch }}
@@ -51,7 +52,7 @@ jobs:
         with:
           path: ./artifacts
 
-      - name: Create Release
+      - name: Create GitHub Release
         id: create_release
         uses: actions/create-release@v1
         with:
@@ -62,17 +63,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Upload Release Assets
-        uses: actions/upload-release-asset@v1
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./artifacts/
-          asset_name: scrap-chat-${{ github.ref_name }}
-          asset_content_type: application/octet-stream
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Upload all binaries separately
+      - name: Upload all binaries as release assets
         run: |
           for file in ./artifacts/*; do
             echo "Uploading $file"
@@ -83,3 +74,5 @@ jobs:
               --data-binary @"$file" \
               "${{ steps.create_release.outputs.upload_url }}?name=$(basename $file)"
           done
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
