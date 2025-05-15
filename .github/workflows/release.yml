@@ -17,7 +17,7 @@ jobs:
       - name: Set up Go (or replace with your language runtime)
         uses: actions/setup-go@v5
         with:
-          go-version: "1.21"
+          go-version: "1.24"
       - name: Run Tests
         run: go test ./...
       - name: Build Binary
