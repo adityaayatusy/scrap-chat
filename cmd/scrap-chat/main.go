@@ -18,6 +18,8 @@ import (
 	"time"
 )
 
+var version = "dev"
+
 func main() {
 	var showVersion bool
 	flag.BoolVar(&showVersion, "version", false, "Display program version")
@@ -52,7 +54,7 @@ func main() {
 	flag.Parse()
 
 	if showVersion {
-		fmt.Println("Version: 1.0.0")
+		fmt.Println("Version:", version)
 		os.Exit(0)
 	}
 
