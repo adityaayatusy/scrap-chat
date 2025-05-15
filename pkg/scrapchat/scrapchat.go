@@ -6,6 +6,7 @@ import (
 	plf "github.com/adityaayatusy/scrap-chat/pkg/platform"
 	"github.com/adityaayatusy/scrap-chat/types"
 	"log"
+	"time"
 )
 
 type ScrapChat struct {
@@ -36,10 +37,14 @@ func (s *ScrapChat) AddCookies(path string) error {
 	return s.scrapper.AddCookies(path)
 }
 
-func (s *ScrapChat) FetchLiveChat(streamID string) (<-chan *types.ChatMessage, error) {
+func (s *ScrapChat) FetchLiveChat(streamID string) (<-chan *types.LiveChatMessage, error) {
 	return s.scrapper.FetchLiveChat(streamID)
 }
 
-func (s *ScrapChat) FetchChannelInfo(path string) (types.ChannelInfo, error) {
+func (s *ScrapChat) FetchVideoComments(streamID string, date *time.Time) (<-chan *types.ChatMessage, error) {
+	return s.scrapper.FetchVideoComments(streamID, date)
+}
+
+func (s *ScrapChat) FetchChannelInfo(path string) (*types.ChannelInfo, error) {
 	return s.scrapper.FetchChannelInfo(path)
 }

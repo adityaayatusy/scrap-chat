@@ -8,11 +8,30 @@ type ChannelInfo struct {
 	URL         string `json:"url"`
 }
 
+type Author struct {
+	ID         string
+	Name       string
+	Thumbnail  string
+	URL        string
+	IsUploader bool
+	IsVerified bool
+}
+
+type LiveChatMessage struct {
+	ID        string
+	Message   string
+	Author    Author
+	Timestamp int64
+}
+
 type ChatMessage struct {
-	ID        string `json:"id"`
-	Message   string `json:"message"`
-	UserId    string `json:"userId"`
-	UserName  string `json:"username"`
-	UserImage string `json:"image"`
-	Timestamp int64  `json:"timestamp"`
+	ID          string
+	Parent      string
+	Message     string
+	Author      Author
+	IsPinned    bool
+	IsFavorited bool
+	ReplyCount  int
+	LikeCount   int
+	Timestamp   int64
 }

@@ -16,7 +16,6 @@ import (
 	"net/http"
 	"os"
 	"regexp"
-	"runtime"
 	"strconv"
 	"strings"
 	"sync"
@@ -152,7 +151,11 @@ func createCookieString(cookies []*http.Cookie) string {
 	return strings.Join(parts, "; ")
 }
 
-func (y *Youtube) FetchLiveChat(path string) (<-chan *types.ChatMessage, error) {
+func (y *Youtube) FetchVideoComments(path string, date *time.Time) (<-chan *types.ChatMessage, error) {
+	return nil, nil
+}
+
+func (y *Youtube) FetchLiveChat(path string) (<-chan *types.LiveChatMessage, error) {
 	url := path
 	if strings.Contains(url, "@") {
 		info, err := y.FetchChannelInfo(path)
@@ -184,7 +187,7 @@ func (y *Youtube) FetchLiveChat(path string) (<-chan *types.ChatMessage, error) 
 		y.getSID()
 	}
 
-	msg := make(chan *types.ChatMessage)
+	msg := make(chan *types.LiveChatMessage)
 
 	go func() {
 		defer close(msg)
@@ -195,12 +198,15 @@ func (y *Youtube) FetchLiveChat(path string) (<-chan *types.ChatMessage, error) 
 				if len(param.Author.AuthorImages) > 0 {
 					userImage = param.Author.AuthorImages[0].URL
 				}
-				msg <- &types.ChatMessage{
-					ID:        param.ID,
-					Message:   param.Message,
-					UserId:    param.Author.AuthorID,
-					UserName:  param.Author.AuthorName,
-					UserImage: userImage,
+				msg <- &types.LiveChatMessage{
+					ID:      param.ID,
+					Message: param.Message,
+					Author: types.Author{
+						ID:        param.Author.AuthorID,
+						Name:      param.Author.AuthorName,
+						Thumbnail: userImage,
+						URL:       fmt.Sprintf("https://youtube.com/channel/%s", param.Author.AuthorID),
+					},
 					Timestamp: param.Timestamp.Unix(),
 				}
 
@@ -217,7 +223,11 @@ func (y *Youtube) FetchLiveChat(path string) (<-chan *types.ChatMessage, error) 
 	return msg, nil
 }
 
-func (y *Youtube) FetchChannelInfo(path string) (types.ChannelInfo, error) {
+func (y *Youtube) FetchLive() {
+
+}
+
+func (y *Youtube) FetchChannelInfo(path string) (*types.ChannelInfo, error) {
 	if !strings.HasPrefix(path, "http") && strings.Contains(path, "@") {
 		path = "https://www.youtube.com/" + path
 	}
@@ -227,13 +237,13 @@ func (y *Youtube) FetchChannelInfo(path string) (types.ChannelInfo, error) {
 	client := &http.Client{Timeout: 5 * time.Second}
 	resp, err := client.Get(path)
 	if err != nil {
-		return types.ChannelInfo{}, err
+		return &types.ChannelInfo{}, err
 	}
 	defer resp.Body.Close()
 
 	doc, err := goquery.NewDocumentFromReader(resp.Body)
 	if err != nil {
-		return types.ChannelInfo{}, err
+		return &types.ChannelInfo{}, err
 	}
 
 	doc.Find("meta[property='og:title']").Each(func(i int, s *goquery.Selection) {
@@ -255,7 +265,7 @@ func (y *Youtube) FetchChannelInfo(path string) (types.ChannelInfo, error) {
 		}
 	})
 
-	return *info, nil
+	return info, nil
 }
 
 func (y *Youtube) getConfig(url string) error {
@@ -325,17 +335,6 @@ func (y *Youtube) getConfig(url string) error {
 	config = nil
 
 	return nil
-}
-
-func printMemUsage(tag string) {
-	var m runtime.MemStats
-	runtime.ReadMemStats(&m)
-	fmt.Printf("=== %s ===\n", tag)
-	fmt.Printf("Alloc = %v KB\n", m.Alloc/1024)
-	fmt.Printf("TotalAlloc = %v KB\n", m.TotalAlloc/1024)
-	fmt.Printf("Sys = %v KB\n", m.Sys/1024)
-	fmt.Printf("NumGC = %v\n", m.NumGC)
-	fmt.Println()
 }
 
 func processConfigRegex(buffer *bytes.Buffer, regex *regexp.Regexp, config *types.YTCgf) bool {
@@ -465,6 +464,7 @@ func (y *Youtube) copyHeaders(req *http.Request, h http.Header) {
 // longPooling performs long polling to receive live chat updates.
 func (y *Youtube) longPooling(param func(string)) {
 	log.Println("Long pool...")
+	commentCount := 0
 	for {
 		url := fmt.Sprintf("https://signaler-pa.youtube.com/punctual/multi-watch/channel?VER=8&gsessionid=%s&key=%s&RID=rpc&SID=%s&AID=0&CI=0&TYPE=xmlhttp&zx=%s&t=1",
 			y.gsessionID, y.config.API_KEY, y.sid, utils.GenerateZX())
@@ -503,17 +503,24 @@ func (y *Youtube) longPooling(param func(string)) {
 				continue
 			}
 			param(line)
-
 			tempTime := time.Now()
 			diff := tempTime.Sub(time.Unix(lastTime, 0))
 			if diff > 4*time.Minute {
 				log.Println("Refersh.....")
 				y.refreshCreds()
 				lastTime = time.Now().Unix()
+				commentCount += 1
+			}
+
+			if commentCount >= 4 {
+				log.Println("Reset SID...")
+				y.getSID()
+				commentCount = 0
+				break
 			}
 		}
 		log.Println("Reconnecting...")
-		time.Sleep(1 * time.Second)
+		time.Sleep(500 * time.Millisecond)
 	}
 }
 
