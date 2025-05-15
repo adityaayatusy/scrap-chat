@@ -11,34 +11,53 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
+
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
-      - name: Set up Go (or replace with your language runtime)
+
+      - name: Set up Go
         uses: actions/setup-go@v5
         with:
           go-version: "1.24"
-      - name: Build Binary
+
+      # Unix-based build step (Linux/macOS)
+      - name: Build Binary on Unix
+        if: runner.os != 'Windows'
+        shell: bash
         run: |
           GOOS=$(echo "${{ matrix.os }}" | sed 's/-latest//')
           GOARCH=amd64
           go build -o scrapchat-${GOOS}-${GOARCH} cmd/scrap-chat/main.go
+
+      # Windows-specific build step
+      - name: Build Binary on Windows
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $os = "${{ matrix.os }}" -replace '-latest',''
+          $arch = "amd64"
+          go build -o "scrapchat-$os-$arch.exe" cmd/scrap-chat/main.go
+
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
           name: scrapchat-${{ matrix.os }}
-          path: scrapchat-${{ matrix.os }}-amd64
+          path: |
+            scrapchat-*
+
   release:
     needs: build
     runs-on: ubuntu-latest
     steps:
       - name: Download Artifacts
         uses: actions/download-artifact@v4
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           files: scrapchat-*/scrapchat-*
-          tag_name: ${{ github.sha }}
+          tag_name: ${{ github.ref_name }}
           body: "Automated release from the release branch."
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
