@@ -1,4 +1,4 @@
-name: Build and Release Multi-OS
+name: Build and Release
 
 on:
   push:
@@ -7,75 +7,40 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        goos: [windows, darwin, linux]
-        goarch: [amd64, arm64]
-      exclude:
-        - goos: windows
-          goarch: arm64
-
+        os: [ubuntu-latest, windows-latest, macos-latest]
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-
-      - name: Setup Go
-        uses: actions/setup-go@v4
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+      - name: Set up Go (or replace with your language runtime)
+        uses: actions/setup-go@v5
         with:
-          go-version: 1.20
-
-      - name: Build binary
-        env:
-          GOOS: ${{ matrix.goos }}
-          GOARCH: ${{ matrix.goarch }}
-          VERSION: ${{ github.ref_name }}
-          CGO_ENABLED: 0
+          go-version: "1.21"
+      - name: Run Tests
+        run: go test ./...
+      - name: Build Binary
         run: |
-          echo "Building for $GOOS/$GOARCH version $VERSION"
-          ext=""
-          if [ "$GOOS" = "windows" ]; then
-            ext=".exe"
-          fi
-          go build -ldflags "-X main.version=$VERSION" -o scrap-chat-$GOOS-$GOARCH$ext cmd/scrap-chat/main.go
-
-      - name: Upload artifacts
+          GOOS=$(echo "${{ matrix.os }}" | sed 's/-latest//')
+          GOARCH=amd64
+          go build -o myapp-${GOOS}-${GOARCH} .
+      - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: scrap-chat-${{ matrix.goos }}-${{ matrix.goarch }}
-          path: scrap-chat-${{ matrix.goos }}-${{ matrix.goarch }}*
-
+          name: myapp-${{ matrix.os }}
+          path: myapp-${{ matrix.os }}-amd64
   release:
     needs: build
     runs-on: ubuntu-latest
-
     steps:
-      - name: Download artifacts
+      - name: Download Artifacts
         uses: actions/download-artifact@v4
-        with:
-          path: ./artifacts
-
       - name: Create GitHub Release
-        id: create_release
-        uses: actions/create-release@v1
+        uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ github.ref_name }}
-          release_name: Release ${{ github.ref_name }}
-          draft: false
-          prerelease: false
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Upload all binaries as release assets
-        run: |
-          for file in ./artifacts/*; do
-            echo "Uploading $file"
-            curl \
-              -X POST \
-              -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
-              -H "Content-Type: application/octet-stream" \
-              --data-binary @"$file" \
-              "${{ steps.create_release.outputs.upload_url }}?name=$(basename $file)"
-          done
+          files: myapp-*/myapp-*
+          tag_name: ${{ github.sha }}
+          body: "Automated release from the release branch."
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
