@@ -41,7 +41,7 @@ Scraping chat messages with no authentication required.
 Use `go get`:
 
 ```bash
-go get github.com/xorvus/scrap-chat
+go get github.com/xorvus/scrap-chat@latest
 ```
 main.go
 ```go
