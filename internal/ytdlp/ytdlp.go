@@ -2,7 +2,7 @@ package ytdlp
 
 import (
 	"fmt"
-	"github.com/adityaayatusy/scrap-chat/internal/utils"
+	"github.com/xorvus/scrap-chat/internal/utils"
 	"log"
 	"os"
 	"os/exec"

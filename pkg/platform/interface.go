@@ -1,7 +1,7 @@
 package platform
 
 import (
-	"github.com/adityaayatusy/scrap-chat/types"
+	"github.com/xorvus/scrap-chat/types"
 	"time"
 )
 

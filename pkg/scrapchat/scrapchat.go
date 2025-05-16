@@ -2,9 +2,9 @@ package scrapchat
 
 import (
 	"context"
-	"github.com/adityaayatusy/scrap-chat/internal/fetchers"
-	plf "github.com/adityaayatusy/scrap-chat/pkg/platform"
-	"github.com/adityaayatusy/scrap-chat/types"
+	"github.com/xorvus/scrap-chat/internal/fetchers"
+	plf "github.com/xorvus/scrap-chat/pkg/platform"
+	"github.com/xorvus/scrap-chat/types"
 	"log"
 	"time"
 )

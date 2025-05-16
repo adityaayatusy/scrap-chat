@@ -2,8 +2,8 @@ package main
 
 import (
 	"fmt"
-	"github.com/adityaayatusy/scrap-chat/pkg/platform"
-	"github.com/adityaayatusy/scrap-chat/pkg/scrapchat"
+	"github.com/xorvus/scrap-chat/pkg/platform"
+	"github.com/xorvus/scrap-chat/pkg/scrapchat"
 )
 
 func main() {
