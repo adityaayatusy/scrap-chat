@@ -42,6 +42,7 @@ Use `go get`:
 
 ```bash
 go get github.com/xorvus/scrap-chat@latest
+go mod tidy
 ```
 main.go
 ```go
