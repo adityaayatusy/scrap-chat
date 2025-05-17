@@ -10,11 +10,12 @@ import (
 )
 
 func main() {
-	var chat platform.ChatFetcher = scrapchat.New("youtube")
+	var chat platform.ChatFetcher = scrapchat.New("youtube", true)
 	if len(os.Args) < 2 {
 		fmt.Println("Usage: program <arg>")
 		return
 	}
+
 	arg := os.Args[1]
 
 	data, err := chat.FetchLiveChat(arg)
