@@ -24,7 +24,7 @@ import (
 )
 
 const (
-	REG_FIRST_CHAT = `\[\[\d*,\[\[null,null,\["([^"]+)"\]\]\]\]`
+	REG_FIRST_CHAT = `\[\[\d+,\[\[null,null,\["([^"]+)"\]\]\]\]`
 	REG_NO_CHAT    = `\[\[\d*,\[\[\[\[.*\[null,null,\["\d*`
 	REG_CHAT       = `\d{16,}`
 	REG_SESSION    = `\w{8,}`
@@ -59,16 +59,18 @@ type Youtube struct {
 	isInvalidationContinuationData bool
 	session                        string
 	ctx                            *context.Context
+	verbose                        bool
 }
 
-func NewYoutube(ctx *context.Context) *Youtube {
+func NewYoutube(ctx *context.Context, verbose bool) *Youtube {
 	y := &Youtube{
 		httpClient: &http.Client{
 			Transport: &http.Transport{
 				MaxResponseHeaderBytes: 1 << 20,
 			},
 		},
-		ctx: ctx,
+		ctx:     ctx,
+		verbose: verbose,
 	}
 	y.header = make(http.Header)
 	defaultHeaders(y.header)
@@ -386,6 +388,10 @@ func (y *Youtube) streamChat(param func([]types.YTChatMessage)) {
 			case IsRegexTrue(regFirstChat, res):
 				go func() {
 					_, match := RegexGetValue(regSession, res)
+					if len(match) == 0 {
+						log.Printf("Regex match for session failed. Response: %s\n", res)
+						return
+					}
 					y.session = match[0]
 				}()
 
@@ -461,9 +467,10 @@ func (y *Youtube) copyHeaders(req *http.Request, h http.Header) {
 	req.Header.Set("Cookie", y.cookieString)
 }
 
-// longPooling performs long polling to receive live chat updates.
 func (y *Youtube) longPooling(param func(string)) {
-	log.Println("Long pool...")
+	if y.verbose {
+		log.Println("Long pool...")
+	}
 	commentCount := 0
 	for {
 		url := fmt.Sprintf("https://signaler-pa.youtube.com/punctual/multi-watch/channel?VER=8&gsessionid=%s&key=%s&RID=rpc&SID=%s&AID=0&CI=0&TYPE=xmlhttp&zx=%s&t=1",
@@ -483,8 +490,9 @@ func (y *Youtube) longPooling(param func(string)) {
 			return
 		}
 		defer resp.Body.Close()
-
-		log.Println("Connected, streaming...")
+		if y.verbose {
+			log.Println("Connected, streaming...")
+		}
 		reader := bufio.NewReader(resp.Body)
 
 		lastTime := time.Now().Unix()
@@ -502,24 +510,34 @@ func (y *Youtube) longPooling(param func(string)) {
 			if line == "" {
 				continue
 			}
+
+			if y.verbose {
+				log.Println(line)
+			}
 			param(line)
 			tempTime := time.Now()
 			diff := tempTime.Sub(time.Unix(lastTime, 0))
 			if diff > 4*time.Minute {
-				log.Println("Refersh.....")
+				if y.verbose {
+					log.Println("Refersh.....")
+				}
 				y.refreshCreds()
 				lastTime = time.Now().Unix()
 				commentCount += 1
 			}
 
 			if commentCount >= 4 {
-				log.Println("Reset SID...")
+				if y.verbose {
+					log.Println("Reset SID...")
+				}
 				y.getSID()
 				commentCount = 0
 				break
 			}
 		}
-		log.Println("Reconnecting...")
+		if y.verbose {
+			log.Println("Reconnecting...")
+		}
 		time.Sleep(500 * time.Millisecond)
 	}
 }
@@ -543,8 +561,9 @@ func (y *Youtube) refreshCreds() {
 		log.Printf("refresh creds HTTP error: %v", err)
 		return
 	}
-
-	log.Printf("Refersh: %d\n", resp.StatusCode)
+	if y.verbose {
+		log.Printf("Refersh: %d\n", resp.StatusCode)
+	}
 
 	resp.Body.Close()
 
@@ -586,15 +605,11 @@ func (y *Youtube) getSID() {
 		return
 	}
 
-	// Salin bagian yang relevan ke slice baru dan bebaskan memori body asli
 	jsonPart := make([]byte, len(body)-idx)
 	copy(jsonPart, body[idx:])
-	body = nil // Membebaskan memori body yang besar lebih awal
-
-	// Parsing JSON secara streaming untuk mengurangi alokasi memori
+	body = nil
 	decoder := json.NewDecoder(bytes.NewReader(jsonPart))
 
-	// Periksa token awal sebagai array
 	t, err := decoder.Token()
 	if err != nil {
 		log.Printf("getSID JSON decode error: %v", err)
@@ -605,7 +620,6 @@ func (y *Youtube) getSID() {
 		return
 	}
 
-	// Iterasi melalui setiap elemen array terluar
 	for decoder.More() {
 		var elem []interface{}
 		if err := decoder.Decode(&elem); err != nil {
@@ -628,7 +642,6 @@ func (y *Youtube) getSID() {
 	log.Println("getSID: SID not found in the JSON structure")
 }
 
-// chooseServer selects the server for the live chat session.
 func (y *Youtube) chooseServer() {
 	url := fmt.Sprintf("https://signaler-pa.youtube.com/punctual/v1/chooseServer?key=%s", y.config.API_KEY)
 	rawPayload := fmt.Sprintf("[[null,null,null,[9,5],null,[[\"youtube_live_chat_web\"],[1],[[[\"chat~%s\"]]]]],null,null,0]", y.videoId)

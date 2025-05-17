@@ -14,14 +14,24 @@ type ScrapChat struct {
 	scrapper plf.ChatFetcher
 }
 
-func New(platform string) *ScrapChat {
+func New(platform string, opts ...any) *ScrapChat {
 	var scrapper plf.ChatFetcher
 
 	ctx := context.Background()
+	verbose := false
+
+	for _, opt := range opts {
+		switch v := opt.(type) {
+		case bool:
+			verbose = v
+		case context.Context:
+			ctx = v
+		}
+	}
 
 	switch platform {
 	case "youtube":
-		scrapper = fetchers.NewYoutube(&ctx)
+		scrapper = fetchers.NewYoutube(&ctx, verbose)
 	default:
 		log.Fatalf("Platform not support")
 		return nil
